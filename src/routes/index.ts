@@ -32,8 +32,12 @@ app.post('/update', async (c) => {
 
     if (contentEncoding === 'gzip') {
         // 如果是 gzip 压缩的，先解压
-        const decompressedBody = inflate(await c.req.arrayBuffer(), { to: 'string' })
-        body = JSON.parse(decompressedBody)// 解析 gzip
+        // 注意：pako 3 移除了 { to: 'string' } 选项，返回 Uint8Array，需要手动解码为字符串
+        const decompressedBody = inflate(new Uint8Array(await c.req.arrayBuffer()))
+        body = JSON.parse(new TextDecoder().decode(decompressedBody))// 解析 gzip
+    } else {
+        // 否则，按普通 JSON 解析
+        body = await c.req.json()
     }
     // type 是加密方式，用于向下兼容
     // type = 'crypto-js' | 'crypto'
